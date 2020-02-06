@@ -21,18 +21,6 @@ Coord AI_Player::select_point(Board *board)
   return _selection;
 }
 
-bool AI_Player::_COMPARE_ACTION(const Action &lhs, const Action &rhs)
-{
-  if(lhs.priority > rhs.priority)
-    return true;
-  if(lhs.priority == rhs.priority)
-  {
-    int r = rand() % 2;
-    return r;
-  }
-  return false;
-}
-
 int AI_Player::_ab_nega_max(Board *board, int alpha, int beta, int depth, Coord coord)
 {
   if(depth > 1 && _terminal_test(board, coord)) // in depth 1, terminal test is not necessary
@@ -43,8 +31,8 @@ int AI_Player::_ab_nega_max(Board *board, int alpha, int beta, int depth, Coord 
 
   Coord selec;
   int v = MIN;
-  auto actions = _actions(board);
-  for(auto a : *actions)
+  vector<Action> actions = _actions(board);
+  for(auto a : actions)
   {
     board->occupy(_player(board), a.coord);
     int w = -_ab_nega_max(board, -beta, -alpha, depth + 1, a.coord);
@@ -58,7 +46,7 @@ int AI_Player::_ab_nega_max(Board *board, int alpha, int beta, int depth, Coord 
       break;
     alpha = max(alpha, v);
   }
-
+  
   if(depth == 1)
     _selection = selec;
 
@@ -121,15 +109,15 @@ inline int AI_Player::_player(Board *board) const
   return board->step_count % 2;
 }
 
-shared_ptr<vector<Action>> AI_Player::_actions(Board *board) const
+vector<Action> AI_Player::_actions(Board *board) const
 {
   int size = board->size;
-  auto actions = make_shared<vector<Action>>();
+  vector<Action> actions;
   if(!board->step_count)
   {
     Action act;
     act.coord = {size / 2, size / 2};
-    actions->push_back(act);
+    actions.push_back(act);
     return actions;
   }
 
@@ -143,12 +131,15 @@ shared_ptr<vector<Action>> AI_Player::_actions(Board *board) const
           Action act;
           act.priority = neigh_amount;
           act.coord = {x, y};
-          actions->push_back(act);
+          actions.push_back(act);
         }
       }
 
-  srand(time(nullptr));
-  std::sort(actions->begin(), actions->end(), _COMPARE_ACTION);
+  std::sort(actions.begin(), actions.end(),
+            [](const Action &lhs, const Action &rhs)
+            {
+              return lhs.priority > rhs.priority ? true : false;
+            });
   return actions;
 }
 
@@ -181,13 +172,6 @@ inline void AI_Player::_check_neigh(Board *board, Coord coord, int *amount) cons
 {
   if(board->valid_coord(coord) && board->occupied[board->coord_trans(coord)] != -1)
     ++*amount;
-}
-
-Board AI_Player::_result(Board *board, Coord coord) const
-{
-  Board result = *board;
-  result.occupy(_player(board), coord);
-  return result;
 }
 
 int AI_Player::_heuristic(Board *board)
@@ -239,7 +223,7 @@ int AI_Player::_heuristic(Board *board)
     player_prefix = opponent_prefix = true;
     for(int j = 1; j <= (i <= size ? size - i : 2 * size - i - 1); ++j)
     {
-      int x, y;
+      int x = 0, y = 0;
       if(i <= size)
       {
         x = i + j - 1;
@@ -263,7 +247,7 @@ int AI_Player::_heuristic(Board *board)
     player_prefix = opponent_prefix = true;
     for(int j = 1; j <= (i <= size ? size - i : 2 * size - i - 1); ++j)
     {
-      int x, y;
+      int x = 0, y = 0;
       if(i <= size)
       {
         x = size - i - j + 2;
@@ -382,7 +366,6 @@ Chess_Shape AI_Player::_analysis_line(Board *board, Coord coord, Direction dir, 
   }
 
   Chess_Shape shape;
-  shape.amount = 1;
   switch(shape_int)
   {
     case 0b10001:

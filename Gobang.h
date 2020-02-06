@@ -17,8 +17,8 @@ private:
   bool _place(int player); // return if the player win after this turn
   bool _victory(Coord coord) const;
   bool _victory_dir(Coord coord, Direction dir) const; // dir can only be {1, 0}, {0 ,1}, {1, 1}, {-1, 1}
-  Board *_board;
-  AI_Player *_AI;
+  Board *_board{nullptr};
+  AI_Player *_AI{nullptr};
   int _computer{0};
   bool _end{false};
 };

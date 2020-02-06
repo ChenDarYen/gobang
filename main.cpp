@@ -9,7 +9,7 @@
 int main()
 {
   Board board(10);
-  AI_Player AI(7);
+  AI_Player AI(4);
   Gobang gobang(board, AI);
   gobang.play();
 

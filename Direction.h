@@ -5,7 +5,7 @@
 
 struct Direction
 {
-  Direction(int x, int y);
+  Direction(int x = 0, int y = 0);
   int x;
   int y;
 };
