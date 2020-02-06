@@ -37,6 +37,16 @@ bool Board::occupy(int player, Coord coord)
   return true;
 }
 
+inline void Board::remove(Coord coord)
+{
+  if(valid_coord(coord))
+    if (occupied[coord_trans(coord)] != -1)
+    {
+      occupied[coord_trans(coord)] = -1;
+      --step_count;
+    }
+}
+
 inline int Board::coord_trans(Coord coord) const
 {
   return (coord.y - 1) * size + coord.x - 1;

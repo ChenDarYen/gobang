@@ -18,6 +18,7 @@ struct Board
   void init();
   bool valid_coord(Coord coord) const;
   bool occupy(int player, Coord coord);
+  inline void remove(Coord coord);
   inline int coord_trans(Coord coord) const;
   std::string icon(Coord coord) const;
   void print() const;

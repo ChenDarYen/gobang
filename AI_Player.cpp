@@ -1,3 +1,6 @@
+#include <iostream>
+using std::cout; using std::endl;
+
 #include <string>
 #include <cmath>
 #include <cstdlib>
@@ -9,7 +12,7 @@ using std::make_shared;
 using std::vector;
 using std::string;
 using std::max;
-int MAX = 1e4, MIN = -MAX;
+int MAX = 9998, MIN = -MAX;
 
 AI_Player::AI_Player(unsigned depth) : _max_depth(depth),
                                        _player_shapes(3, vector<int>(2, 0)),
@@ -17,7 +20,7 @@ AI_Player::AI_Player(unsigned depth) : _max_depth(depth),
 
 Coord AI_Player::select_point(Board *board)
 {
-  _ab_nega_max(*board, MIN, MAX, 1);
+  _ab_nega_max(board, MIN, MAX, 1);
   return _selection;
 }
 
@@ -33,20 +36,22 @@ bool AI_Player::_COMPARE_ACTION(const Action &lhs, const Action &rhs)
   return false;
 }
 
-int AI_Player::_ab_nega_max(Board board, int alpha, int beta, int depth, Coord coord)
+int AI_Player::_ab_nega_max(Board *board, int alpha, int beta, int depth, Coord coord)
 {
-  if(depth > 1 && _terminal_test(&board, coord)) // in depth 1, terminal test is not necessary
+  if(depth > 1 && _terminal_test(board, coord)) // in depth 1, terminal test is not necessary
     return -10000;
 
   if(depth > _max_depth)
-    return -_heuristic(&board);
+    return -_heuristic(board);
 
   Coord selec;
   int v = MIN;
-  auto actions = _actions(&board);
+  auto actions = _actions(board);
   for(auto a : *actions)
   {
-    int w = -_ab_nega_max(_result(&board, a.coord), -beta, -alpha, depth + 1, a.coord);
+    board->occupy(_player(board), a.coord);
+    int w = -_ab_nega_max(board, -beta, -alpha, depth + 1, a.coord);
+    board->remove(a.coord);
     if(w > v)
     {
       v = w;
