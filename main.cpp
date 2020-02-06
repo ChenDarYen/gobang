@@ -9,16 +9,9 @@
 int main()
 {
   Board board(10);
-  AI_Player AI(4);
+  AI_Player AI(7);
   Gobang gobang(board, AI);
-  try
-  {
-    gobang.play();
-  }
-  catch(std::exception &e)
-  {
-    std::cout << e.what() << std::endl;
-  }
+  gobang.play();
 
   return 0;
 }

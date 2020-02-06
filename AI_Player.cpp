@@ -1,6 +1,3 @@
-#include <iostream>
-using std::cout; using std::endl;
-
 #include <string>
 #include <cmath>
 #include <cstdlib>
@@ -39,10 +36,10 @@ bool AI_Player::_COMPARE_ACTION(const Action &lhs, const Action &rhs)
 int AI_Player::_ab_nega_max(Board *board, int alpha, int beta, int depth, Coord coord)
 {
   if(depth > 1 && _terminal_test(board, coord)) // in depth 1, terminal test is not necessary
-    return -10000;
+    return -10000 + depth; // consider the urgentness
 
   if(depth > _max_depth)
-    return -_heuristic(board);
+    return -_heuristic(board) + depth;
 
   Coord selec;
   int v = MIN;
