@@ -125,11 +125,11 @@ vector<Action> AI_Player::_actions(Board *board) const
     for(int y = 1; y <= size; ++y)
       if(board->occupied[board->coord_trans({x, y})] == -1)
       {
-        int neigh_amount = _neighbore(board, {x, y});
-        if(neigh_amount)
+        int h = _coord_heuristic(board, {x, y});
+        if(h)
         {
           Action act;
-          act.priority = neigh_amount;
+          act.priority = h;
           act.coord = {x, y};
           actions.push_back(act);
         }
@@ -143,35 +143,67 @@ vector<Action> AI_Player::_actions(Board *board) const
   return actions;
 }
 
-int AI_Player::_neighbore(Board *board, Coord coord) const
+int AI_Player::_coord_heuristic(Board *board, Coord coord) const
 {
-  int neigh_amount = 0;
-  Coord neigh = coord;
-  --neigh.x;
-  --neigh.y;
-  _check_neigh(board, neigh, &neigh_amount);
-  ++neigh.x;
-  _check_neigh(board, neigh, &neigh_amount);
-  ++neigh.x;
-  _check_neigh(board, neigh, &neigh_amount);
-  ++neigh.y;
-  _check_neigh(board, neigh, &neigh_amount);
-  ++neigh.y;
-  _check_neigh(board, neigh, &neigh_amount);
-  --neigh.x;
-  _check_neigh(board, neigh, &neigh_amount);
-  --neigh.x;
-  _check_neigh(board, neigh, &neigh_amount);
-  --neigh.y;
-  _check_neigh(board, neigh, &neigh_amount);
-
-  return neigh_amount;
+  return _coord_heuristic_dir(board, coord, {1, 0}) + _coord_heuristic_dir(board, coord, {0, 1}) +
+         _coord_heuristic_dir(board, coord, {1, 1}) + _coord_heuristic_dir(board, coord, {-1, 1});
 }
 
-inline void AI_Player::_check_neigh(Board *board, Coord coord, int *amount) const
+int AI_Player::_coord_heuristic_dir(Board *board, Coord coord, Direction dir) const
 {
-  if(board->valid_coord(coord) && board->occupied[board->coord_trans(coord)] != -1)
-    ++*amount;
+  // consider both block and connect chesses
+  return _critical(board, coord, dir, false) + _critical(board, coord, dir, true);
+}
+
+int AI_Player::_critical(Board *board, Coord coord, Direction dir, bool connec) const
+{
+  int player = _player(board), target = !connec ? player : player == 1 ? 0 : 1;
+  int i = 0, amount = 0, tail = 1;
+  int score = 0;
+  Coord stunt_coord = coord - dir;
+  while(i++ < 5 && tail == 1)
+  {
+    if(!board->valid_coord(stunt_coord) ||
+       board->occupied[board->coord_trans(stunt_coord)] == target)
+      tail = -1;
+    else if(board->occupied[board->coord_trans(stunt_coord)] == -1)
+      tail = 0;
+    else
+    {
+      ++amount;
+      stunt_coord = stunt_coord - dir;
+    }
+  }
+  score += amount ? amount * 2 + tail : 0;
+
+  i = amount = 0;
+  tail = 1;
+  stunt_coord = coord + dir;
+  while(i++ < 5 && tail == 1)
+  {
+    if (!board->valid_coord(stunt_coord) ||
+        board->occupied[board->coord_trans(stunt_coord)] == target)
+      tail = -1;
+    else if(board->occupied[board->coord_trans(stunt_coord)] == -1)
+      tail = 0;
+    else
+    {
+      ++amount;
+      stunt_coord = stunt_coord + dir;
+    }
+  }
+  score += amount ? amount * 2 + tail : 0;
+
+  int diff = 1;
+  if(score >= 6) // stronger or equal to 活三
+  {
+    score *= 1000;
+    diff = 500;
+  }
+  else
+    score *= 2;
+
+  return !connec ? score : score ? score + diff : 0; // connec is more important then block
 }
 
 int AI_Player::_heuristic(Board *board)
@@ -197,7 +229,7 @@ int AI_Player::_heuristic(Board *board)
     player_prefix = opponent_prefix = true;
     for(int x = 1; x <= size - 1; ++x)
     {
-      int h = _analysis(board, {x, y}, {1, 0}, &blank_preifix, &player_prefix, &opponent_prefix);
+      int h = _analysis_shape(board, {x, y}, {1, 0}, &blank_preifix, &player_prefix, &opponent_prefix);
       if(h)
         return h;
     }
@@ -210,7 +242,7 @@ int AI_Player::_heuristic(Board *board)
     player_prefix = opponent_prefix = true;
     for(int y = 1; y <= size - 1; ++y)
     {
-      int h = _analysis(board, {x, y}, {0, 1}, &blank_preifix, &player_prefix, &opponent_prefix);
+      int h = _analysis_shape(board, {x, y}, {0, 1}, &blank_preifix, &player_prefix, &opponent_prefix);
       if(h)
         return h;
     }
@@ -234,7 +266,7 @@ int AI_Player::_heuristic(Board *board)
         x = j;
         y = i - size + j;
       }
-      int h = _analysis(board, {x, y}, {1, 1}, &blank_preifix, &player_prefix, &opponent_prefix);
+      int h = _analysis_shape(board, {x, y}, {1, 1}, &blank_preifix, &player_prefix, &opponent_prefix);
       if(h)
         return h;
     }
@@ -258,7 +290,7 @@ int AI_Player::_heuristic(Board *board)
         x = size - j + 1;
         y = i - size + j;
       }
-      int h = _analysis(board, {x, y}, {-1, 1}, &blank_preifix, &player_prefix, &opponent_prefix);
+      int h = _analysis_shape(board, {x, y}, {-1, 1}, &blank_preifix, &player_prefix, &opponent_prefix);
       if(h)
         return h;
     }
@@ -299,7 +331,7 @@ int AI_Player::_heuristic(Board *board)
   return h;
 }
 
-int AI_Player::_analysis(Board *board, Coord coord, Direction dir,
+int AI_Player::_analysis_shape(Board *board, Coord coord, Direction dir,
                          int *blank_prefix, bool *player_prefix, bool *opponent_prefix)
 {
   int player = (board->step_count - 1) % 2;
@@ -314,7 +346,7 @@ int AI_Player::_analysis(Board *board, Coord coord, Direction dir,
   {
     if(*opponent_prefix) // in order to avoid analysising repeatedly
     {
-      Chess_Shape shape = _analysis_line(board, coord, dir, *blank_prefix);
+      Chess_Shape shape = _analysis_shape_line(board, coord, dir, *blank_prefix);
       if(shape.amount > 1)
         ++_player_shapes[shape.amount - 2][shape.alive];
     }
@@ -326,7 +358,7 @@ int AI_Player::_analysis(Board *board, Coord coord, Direction dir,
   {
     if(*player_prefix)
     {
-      Chess_Shape shape = _analysis_line(board, coord, dir, *blank_prefix);
+      Chess_Shape shape = _analysis_shape_line(board, coord, dir, *blank_prefix);
 
       if(shape.amount == 4) // if opponent has 活四 or 沖四, the player must loose
         return shape.alive ? -9050 : -9040;
@@ -342,7 +374,7 @@ int AI_Player::_analysis(Board *board, Coord coord, Direction dir,
   return 0; // return 0 means the heuristic is not already be determined
 }
 
-Chess_Shape AI_Player::_analysis_line(Board *board, Coord coord, Direction dir, int blank_prefix) const
+Chess_Shape AI_Player::_analysis_shape_line(Board *board, Coord coord, Direction dir, int blank_prefix) const
 {
   int player = board->occupied[board->coord_trans(coord)];
   int opponent = player == 1 ? 0 : 1;
