@@ -24,7 +24,7 @@ public:
   Coord select_point(Board *board);
 
 private:
-  int _ab_nega_max(Board *board, int alpha, int beta, int depth, Coord coord = {0, 0});
+  int _nega_scout(Board *board, int alpha, int beta, int depth, Coord coord = {0, 0});
   bool _terminal_test(Board *board, Coord coord) const;
   bool _terminal_test_dir(Board *board, Coord coord, Direction dir) const; // dir can only be {1, 0}, {0 ,1}, {1, 1}, {-1, 1}
   inline int _player(Board *board) const;

@@ -17,11 +17,11 @@ AI_Player::AI_Player(unsigned depth) : _max_depth(depth),
 
 Coord AI_Player::select_point(Board *board)
 {
-  _ab_nega_max(board, MIN, MAX, 1);
+  _nega_scout(board, MIN, MAX, 1);
   return _selection;
 }
 
-int AI_Player::_ab_nega_max(Board *board, int alpha, int beta, int depth, Coord coord)
+int AI_Player::_nega_scout(Board *board, int alpha, int beta, int depth, Coord coord)
 {
   if(depth > 1 && _terminal_test(board, coord)) // in depth 1, terminal test is not necessary
     return -10000 + depth; // consider the urgentness
@@ -31,11 +31,16 @@ int AI_Player::_ab_nega_max(Board *board, int alpha, int beta, int depth, Coord 
 
   Coord selec;
   int v = MIN;
+  int b = beta;
   vector<Action> actions = _actions(board);
   for(auto a : actions)
   {
     board->occupy(_player(board), a.coord);
-    int w = -_ab_nega_max(board, -beta, -alpha, depth + 1, a.coord);
+
+    int w = -_nega_scout(board, -b, -alpha, depth + 1, a.coord);
+    if(alpha < w && w < beta && beta != b)
+      w = -_nega_scout(board, -beta, -alpha, depth + 1, a.coord);
+
     board->remove(a.coord);
     if(w > v)
     {
@@ -45,6 +50,7 @@ int AI_Player::_ab_nega_max(Board *board, int alpha, int beta, int depth, Coord 
     if(v >= beta)
       break;
     alpha = max(alpha, v);
+    b = alpha + 1;
   }
   
   if(depth == 1)
